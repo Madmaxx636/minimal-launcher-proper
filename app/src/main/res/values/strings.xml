@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Minimal Launcher Proper</string>
+    <string name="tagline">Imagine the falls became minimal.</string>
+    <string name="settings_label">Minimal Launcher Proper settings</string>
+    <string name="lock_service_label">Minimal Launcher Proper: double-tap to lock</string>
+    <string name="lock_service_desc">Lets Minimal Launcher Proper turn the screen off when you double-tap an empty part of the home screen. It does not read or record anything on screen.</string>
+</resources>

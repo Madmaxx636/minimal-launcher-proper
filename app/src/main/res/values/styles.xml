@@ -1,0 +1,10 @@
+<resources>
+    <style name="AppTheme" parent="android:Theme.DeviceDefault.Light.NoActionBar">
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:windowShowWallpaper">false</item>
+        <item name="android:alertDialogTheme">@style/InkDialog</item>
+    </style>
+    <style name="InkDialog" parent="android:Theme.DeviceDefault.Light.Dialog.Alert">
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+</resources>

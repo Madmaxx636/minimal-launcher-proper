@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Findings that are deliberate. Everything else lint reports should be fixed, not listed here. -->
+<lint>
+    <!-- Only the application context is kept in static fields, so nothing is leaked. -->
+    <issue id="StaticFieldLeak" severity="ignore" />
+    <!-- The custom views are built in code and never inflated from XML. -->
+    <issue id="ViewConstructor" severity="ignore" />
+    <!-- Drawing happens on demand and rarely, because e-ink is redrawn a page at a time. -->
+    <issue id="DrawAllocation" severity="ignore" />
+    <!-- Icon packs name their drawables as strings, so looking them up by name is the only way. -->
+    <issue id="DiscouragedApi" severity="ignore" />
+    <!-- Targeting 34 on purpose: newer versions force edge-to-edge, which this layout does not use yet. -->
+    <issue id="OldTargetApi" severity="ignore" />
+    <issue id="GradleDependency" severity="ignore" />
+    <!-- Gesture surfaces (lists, scrubber, stacks) have no single "click" to report. -->
+    <issue id="ClickableViewAccessibility" severity="ignore" />
+    <!-- Row summaries are built from numbers and units, not translated sentences. -->
+    <issue id="SetTextI18n" severity="ignore" />
+</lint>
