@@ -47,6 +47,8 @@ public class AppListView extends View {
     private boolean paged, dividers, upper, showIcons, badges;
     private String align, valign = "top";
     private float textPx, iconPx, rowH, pad;
+    private float baseText, baseIcon, baseRow, fitScale = 1f;
+    private boolean fitAll;
     private int gapDp;
 
     // layout, recomputed by layout()
@@ -82,6 +84,13 @@ public class AppListView extends View {
 
     public void setListener(Listener l) { listener = l; }
     public void setValign(String v) { valign = v; invalidate(); }
+
+    /** When on, rows shrink (down to half size) so every item fits on one screen with no paging. */
+    public void setFitAll(boolean on) {
+        if (fitAll == on) return;
+        fitAll = on;
+        invalidate();
+    }
 
     /** The row picked with the arrow keys of a physical keyboard, or -1 if none has been picked. */
     public void setSelected(int i) {
@@ -130,6 +139,10 @@ public class AppListView extends View {
         textPx = Prefs.sp(c, 22) * scalePct / 100f * Prefs.getInt(Prefs.LIST_SCALE, 100) / 100f;
         iconPx = textPx * 1.15f * Prefs.getInt(Prefs.ICON_SCALE, 100) / 100f;
         rowH = Math.max(textPx * 1.5f, showIcons ? iconPx * 1.15f : 0) + Prefs.dp(c, gapDp * 2);
+        baseText = textPx;
+        baseIcon = iconPx;
+        baseRow = rowH;
+        fitScale = 1f;
         pad = Prefs.dp(c, Prefs.getInt(Prefs.MARGIN, 24));
         text.setTypeface(Prefs.typeface());
         small.setTypeface(Prefs.typeface());
@@ -177,6 +190,16 @@ public class AppListView extends View {
 
     private void layout() {
         float h = getHeight();
+        float want = 1f;
+        if (fitAll && !items.isEmpty() && h > 0 && baseRow > 0) want = Math.max(0.5f, Math.min(1f, h / (items.size() * baseRow)));
+        if (want != fitScale) {
+            fitScale = want;
+            textPx = baseText * want;
+            iconPx = baseIcon * want;
+            rowH = baseRow * want;
+            text.setTextSize(textPx);
+            small.setTextSize(Math.max(Prefs.sp(getContext(), 13) * want, textPx * 0.55f));
+        }
         footerH = (paged && items.size() > perPage) ? Prefs.dp(getContext(), 28) : 0;
         float avail = h - footerH;
         perPage = Math.max(1, (int) (avail / rowH));

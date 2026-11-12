@@ -72,6 +72,24 @@ final class WidgetPicker {
                 .setNegativeButton("Cancel", null).show();
     }
 
+    /** True when the app offers at least one widget that can go on a home screen. */
+    static boolean hasWidgets(Context c, String pkg) {
+        for (AppWidgetProviderInfo p : Widgets.installedProviders()) {
+            if (p.provider.getPackageName().equals(pkg) && Widgets.offeredOnHome(p)) return true;
+        }
+        return false;
+    }
+
+    /** Straight to one app's widgets, for apps that already know which app they want. */
+    static void showFor(final Activity a, final String slot, String pkg, final Runnable done) {
+        List<AppWidgetProviderInfo> list = new ArrayList<>();
+        for (AppWidgetProviderInfo p : Widgets.installedProviders()) {
+            if (p.provider.getPackageName().equals(pkg) && Widgets.offeredOnHome(p)) list.add(p);
+        }
+        if (list.isEmpty()) return;
+        showWidgets(a, slot, done, appLabel(a.getPackageManager(), pkg), list);
+    }
+
     private static void showBuiltins(final Activity a, final String slot, final Runnable done) {
         final List<Row> rows = new ArrayList<>();
         for (int t = 1; t < BuiltinWidgets.NAMES.length; t++) rows.add(new Row(null, BuiltinWidgets.NAMES[t], BUILTIN_HINTS[t], t));

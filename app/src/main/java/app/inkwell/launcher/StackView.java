@@ -55,7 +55,8 @@ public class StackView extends LinearLayout {
             case MotionEvent.ACTION_MOVE: {
                 float dx = e.getX() - downX, dy = e.getY() - downY;
                 boolean vertical = onDismiss != null && Math.abs(dy) > slop * 1.5f && Math.abs(dy) > Math.abs(dx) * 1.5f;
-                if (!swiping && ((Math.abs(dx) > slop * 1.5f && Math.abs(dx) > Math.abs(dy) * 1.5f) || vertical)) {
+                boolean sideways = onSwipe != null && Math.abs(dx) > slop * 1.5f && Math.abs(dx) > Math.abs(dy) * 1.5f;
+                if (!swiping && (sideways || vertical)) {
                     swiping = true;
                     getParent().requestDisallowInterceptTouchEvent(true);
                 }

@@ -350,8 +350,10 @@ public class SettingsActivity extends Activity {
         });
         appRow("App the clock opens", Prefs.CLOCK_APP, "Android's default");
         appRow("App the date opens", Prefs.CAL_APP, "Android's default");
-        choice("Music controls style", Prefs.MEDIA_STYLE, new String[]{"The launcher's controls", "The app's own widget (when it has one set up)"},
-                new String[]{"bar", "widget"}, "bar");
+        choice("Music controls style", Prefs.MEDIA_STYLE, new String[]{"The launcher's controls", "The app's own widget (launcher controls until one is set up)"},
+                new String[]{"bar", "widget"}, "widget");
+        toggle("Shrink the app list to fit when music shows", Prefs.FIT_MEDIA, true);
+        Ui.row(list, "Media app widgets", mediaWidgetSummary(), v -> pickMediaApp());
         choice("Music controls position", Prefs.MEDIA_BAR_POS, new String[]{"Bottom of the screen", "Above the clock", "Below the clock", "Above the app list"},
                 new String[]{"bottom", "clock", "below", "list"}, "bottom");
         choice("Artwork colors", Prefs.MEDIA_ART_LOOK, IconStyle.LOOK_NAMES, IconStyle.LOOK_IDS, "gray");
@@ -366,8 +368,9 @@ public class SettingsActivity extends Activity {
         choice("Quick button shape", Prefs.BTN_SHAPE, ButtonView.SHAPE_NAMES, ButtonView.SHAPE_IDS, "circle");
         choice("Quick button border", Prefs.BTN_BORDER, ButtonView.BORDER_NAMES, ButtonView.BORDER_IDS, "normal");
         choice("Quick button fill", Prefs.BTN_FILL, ButtonView.FILL_NAMES, ButtonView.FILL_IDS, "theme");
-        choice("Quick button contents", Prefs.BTN_CONTENT, ButtonView.CONTENT_NAMES, ButtonView.CONTENT_IDS, "icon");
-        if (Prefs.getStr(Prefs.BTN_CONTENT, "icon").equals("word")) textRow("Quick button word", Prefs.BTN_WORD, "Up to 6 characters", 6);
+        choice("Quick button contents", Prefs.BTN_CONTENT, ButtonView.CONTENT_NAMES, ButtonView.CONTENT_IDS, "glyph");
+        if (Prefs.getStr(Prefs.BTN_CONTENT, "glyph").equals("glyph")) choice("Quick button icon", Prefs.BTN_GLYPH, ButtonView.GLYPH_NAMES, ButtonView.GLYPH_IDS, "target");
+        if (Prefs.getStr(Prefs.BTN_CONTENT, "glyph").equals("word")) textRow("Quick button word", Prefs.BTN_WORD, "Up to 6 characters", 6);
 
         // ---- Widgets ----
         begin("widgets");
@@ -384,8 +387,6 @@ public class SettingsActivity extends Activity {
         sliderRow("Widget side margin", "Space at the left and right of widgets", Prefs.W_MARGIN, 0, 96, 4, " dp", 16);
         choice("App widgets appear (while their app plays)", Prefs.MEDIA_HOME_POS, new String[]{"Above the clock", "Below the clock", "Above the app list"},
                 new String[]{"clock", "below", "list"}, "list");
-        Ui.row(list, "Apps whose widgets show while they play", Prefs.getList(Prefs.MEDIA_HOME).size()
-                + " on. To add one: long-press the app, choose Widgets & pop-up settings, add its widget, then turn it on.", null);
 
         // ---- Search & keyboard ----
         begin("search");
@@ -562,6 +563,42 @@ public class SettingsActivity extends Activity {
         return k.equals(Prefs.BOLD) || k.equals(Prefs.UPPER) || k.equals(Prefs.DIVIDERS) || k.equals(Prefs.ICONS);
     }
 
+    /** Media apps worth offering a widget for: the ones in a media-like folder, plus any that has played music. */
+    private List<String> mediaApps() {
+        java.util.LinkedHashSet<String> out = new java.util.LinkedHashSet<>(Prefs.getList(Prefs.MEDIA_ASKED));
+        for (String id : Folders.allIds()) {
+            String n = Folders.nameOf(id).toLowerCase(java.util.Locale.ROOT);
+            if (n.contains("media") || n.contains("music") || n.contains("audio") || n.contains("podcast")) out.addAll(Folders.apps(id));
+        }
+        List<String> keep = new ArrayList<>();
+        for (String pkg : out) if (AppRepo.find(pkg) != null && WidgetPicker.hasWidgets(this, pkg)) keep.add(pkg);
+        return keep;
+    }
+
+    private String mediaWidgetSummary() {
+        List<String> apps = mediaApps();
+        int set = 0;
+        for (String p : apps) if (!Widgets.ids("app:" + p).isEmpty()) set++;
+        return apps.isEmpty() ? "No media apps with widgets found yet. Play something and they appear here."
+                : set + " of " + apps.size() + " media apps with widgets are set up. Tap to choose.";
+    }
+
+    private void pickMediaApp() {
+        final List<String> apps = mediaApps();
+        if (apps.isEmpty()) {
+            Toast.makeText(this, "Nothing found yet. Play something, or put music apps in a folder named Media or Music.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        final String[] names = new String[apps.size()];
+        for (int i = 0; i < names.length; i++) {
+            String p = apps.get(i);
+            names[i] = AppRepo.displayLabel(AppRepo.find(p)) + (Widgets.ids("app:" + p).isEmpty() ? "" : "   ✓ widget set");
+        }
+        new AlertDialog.Builder(this).setTitle("Media app widgets")
+                .setItems(names, (d, w) -> WidgetPicker.showFor(this, "app:" + apps.get(w), apps.get(w), this::build))
+                .setNegativeButton("Close", null).show();
+    }
+
     private void choice(String title, String key, String[] names, String[] values, String def) {
         final int idx = Math.max(0, indexOf(values, Prefs.getStr(key, def)));
         Ui.row(list, title, names[idx], v ->
@@ -676,6 +713,10 @@ public class SettingsActivity extends Activity {
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
+        if (Widgets.onResult(this, req, res)) {
+            build();
+            return;
+        }
         if (res != RESULT_OK || data == null || data.getData() == null) return;
         Uri uri = data.getData();
         try {

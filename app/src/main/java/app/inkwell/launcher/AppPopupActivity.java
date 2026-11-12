@@ -5,11 +5,9 @@ import android.content.Intent;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 
-import java.util.List;
-
 /**
- * Settings for an app's pop-up: its widgets (ordered like apps are) and whether those widgets show on
- * the home screen while the app is playing media.
+ * Settings for an app's pop-up: its widgets, ordered like apps are. A media app's widgets also show on the
+ * home screen while it plays.
  */
 public class AppPopupActivity extends Activity {
     private String pkg;
@@ -49,15 +47,9 @@ public class AppPopupActivity extends Activity {
         list.removeAllViews();
         Ui.row(list, "‹  Back", null, v -> finish());
         Ui.section(list, AppRepo.displayLabel(AppRepo.find(pkg)) + " pop-up");
-        final List<String> watching = Prefs.getList(Prefs.MEDIA_HOME);
-        boolean on = watching.contains(pkg);
-        Ui.row(list, "Show these widgets on home while it plays", on
-                ? "On. They appear on the home screen only while " + AppRepo.displayLabel(AppRepo.find(pkg)) + " has media playing or paused."
-                : "Off. They only show in the pop-up (swipe right on the app).", v -> {
-            if (on) watching.remove(pkg); else watching.add(pkg);
-            Prefs.putList(Prefs.MEDIA_HOME, watching);
-            build();
-        });
+        Ui.row(list, "On the home screen", "These widgets replace the launcher's music controls on home while "
+                + AppRepo.displayLabel(AppRepo.find(pkg)) + " has media playing or paused. Swipe one up or down there to send it away. "
+                + "Turn this off with Music controls style in Settings.", null);
         if (!NotifService.isEnabled(this)) {
             Ui.row(list, "Notification access is off", "Minimal Launcher Proper needs it to know when an app is playing. Tap to turn it on.", v ->
                     startActivity(new Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));

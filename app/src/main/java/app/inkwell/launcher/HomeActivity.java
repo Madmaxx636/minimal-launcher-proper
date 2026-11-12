@@ -49,6 +49,7 @@ public class HomeActivity extends Activity {
     private FrameLayout mediaBars;
     private MediaBar shownBar;
     private String barsKey = "";
+    private boolean offering;
     private int barIndex;
     /** Apps whose music bar was closed with the X, and whether they were playing when it was closed. */
     private final java.util.Map<String, Boolean> closedBars = new java.util.HashMap<>();
@@ -752,6 +753,7 @@ public class HomeActivity extends Activity {
      */
     private void refreshMediaBars() {
         List<MediaController> all = NotifService.activeSessions(8);
+        if (Prefs.getBool(Prefs.MEDIA, true)) for (MediaController mc : all) noteMediaApp(mc.getPackageName());
         for (java.util.Iterator<java.util.Map.Entry<String, Boolean>> it = closedBars.entrySet().iterator(); it.hasNext(); ) {
             java.util.Map.Entry<String, Boolean> closed = it.next();
             MediaController still = null;
@@ -807,6 +809,34 @@ public class HomeActivity extends Activity {
         }
         if (shownBar != null) shownBar.refresh();
         mediaBars.setVisibility(shownBar == null ? View.GONE : View.VISIBLE);
+        updateFit();
+    }
+
+    /** With music controls or a media widget on home, the app list shrinks so every app still fits. */
+    private void updateFit() {
+        boolean media = shownBar != null || (mediaBox != null && mediaBox.getChildCount() > 0);
+        home.setFitAll(media && Prefs.getBool(Prefs.FIT_MEDIA, true));
+    }
+
+    /**
+     * The first time an app plays music, and it offers widgets, ask once whether to use its widget on home
+     * while it plays. Every media app seen is remembered, which is also what Settings lists.
+     */
+    private void noteMediaApp(final String pkg) {
+        List<String> seen = Prefs.getList(Prefs.MEDIA_ASKED);
+        if (seen.contains(pkg)) return;
+        seen.add(pkg);
+        Prefs.putList(Prefs.MEDIA_ASKED, seen);
+        final AppRepo.AppEntry app = AppRepo.find(pkg);
+        if (offering || !resumedNow || app == null || !Prefs.getStr(Prefs.MEDIA_STYLE, "widget").equals("widget")
+                || !Widgets.ids("app:" + pkg).isEmpty() || !WidgetPicker.hasWidgets(this, pkg)) return;
+        offering = true;
+        new AlertDialog.Builder(this).setTitle("Use " + AppRepo.displayLabel(app) + "'s widget?")
+                .setMessage("It has a widget. Show it on the home screen while it plays, instead of the launcher's music controls. "
+                        + "You can change this later in Settings, under Media app widgets.")
+                .setPositiveButton("Choose widget", (d, w) -> WidgetPicker.showFor(this, "app:" + pkg, pkg, this::refreshWidgets))
+                .setNegativeButton("Not now", null)
+                .setOnDismissListener(d -> offering = false).show();
     }
 
     private static boolean barPlaying(MediaController mc) {
@@ -818,9 +848,10 @@ public class HomeActivity extends Activity {
     /** Apps whose own widget stands in for the launcher's music bar while they play (if that style is chosen). */
     private List<String> widgetApps() {
         List<String> out = new ArrayList<>();
-        if (!Prefs.getStr(Prefs.MEDIA_STYLE, "bar").equals("widget")) return out;
-        for (String pkg : Prefs.getList(Prefs.MEDIA_HOME)) {
-            if (NotifService.isActive(pkg) && !Widgets.ids("app:" + pkg).isEmpty()) out.add(pkg);
+        if (!Prefs.getStr(Prefs.MEDIA_STYLE, "widget").equals("widget")) return out;
+        for (MediaController mc : NotifService.activeSessions(8)) {
+            String pkg = mc.getPackageName();
+            if (!closedBars.containsKey(pkg) && !Widgets.ids("app:" + pkg).isEmpty()) out.add(pkg);
         }
         return out;
     }
@@ -850,12 +881,24 @@ public class HomeActivity extends Activity {
         mediaKey = key.toString();
         mediaBox.removeAllViews();
         int w = getResources().getDisplayMetrics().widthPixels;
-        for (String pkg : active) {
+        for (final String pkg : active) {
             LinearLayout col = new LinearLayout(this);
             col.setOrientation(LinearLayout.VERTICAL);
             Widgets.fill(this, col, "app:" + pkg, w, () -> refreshMediaWidgets(true));
-            mediaBox.addView(col, new LinearLayout.LayoutParams(-1, -2));
+            // swipe up or down to send it away until that app plays again
+            StackView away = new StackView(this);
+            away.setContent(col, new LinearLayout.LayoutParams(-1, -2));
+            away.setOnDismiss(() -> {
+                for (MediaController mc : NotifService.activeSessions(8)) {
+                    if (mc.getPackageName().equals(pkg)) closedBars.put(pkg, barPlaying(mc));
+                }
+                refreshMediaBars();
+                refreshMediaWidgets(true);
+                quickButton.post(this::placeButton);
+            });
+            mediaBox.addView(away, new LinearLayout.LayoutParams(-1, -2));
         }
+        updateFit();
     }
 
     private void widgetsAndClockChanged() {

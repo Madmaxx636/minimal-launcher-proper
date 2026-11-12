@@ -21,8 +21,10 @@ public class ButtonView extends View {
     public static final String[] BORDER_NAMES = {"None", "Thin", "Normal", "Thick"};
     public static final String[] FILL_IDS = {"theme", "inverse", "none"};
     public static final String[] FILL_NAMES = {"Theme background", "Inverted (text color)", "See-through"};
-    public static final String[] CONTENT_IDS = {"icon", "word", "none"};
-    public static final String[] CONTENT_NAMES = {"The app's icon", "A short word of my own", "Nothing, just the shape"};
+    public static final String[] CONTENT_IDS = {"glyph", "icon", "word", "none"};
+    public static final String[] CONTENT_NAMES = {"A built-in icon", "The target app's icon", "A short word of my own", "Nothing, just the shape"};
+    public static final String[] GLYPH_IDS = {"target", "dot", "plus", "up", "search", "grid", "lines", "ring"};
+    public static final String[] GLYPH_NAMES = {"Target (ring and dot)", "Dot", "Plus", "Arrow up", "Search", "Grid", "Lines", "Ring"};
 
     private final Paint ring = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -94,8 +96,12 @@ public class ButtonView extends View {
             c.drawPath(shape, ring);
         }
 
-        String content = Prefs.getStr(Prefs.BTN_CONTENT, "icon");
+        String content = Prefs.getStr(Prefs.BTN_CONTENT, "glyph");
         if (content.equals("none")) return; // an empty button: just the shape
+        if (content.equals("glyph")) {
+            drawGlyph(c, s, ink, Prefs.getStr(Prefs.BTN_GLYPH, "target"));
+            return;
+        }
         if (content.equals("word")) {
             drawText(c, s, ink, Prefs.getStr(Prefs.BTN_WORD, ""));
             return;
@@ -109,6 +115,71 @@ public class ButtonView extends View {
             return;
         }
         drawText(c, s, ink, target.isEmpty() ? "+" : Folders.isFolder(target) ? "▸" : action ? ButtonTargets.glyph(target) : "?");
+    }
+
+    /** Plain geometric icons drawn with round caps and one stroke weight, so they stay crisp at any size. */
+    private void drawGlyph(Canvas c, float s, int ink, String id) {
+        float m = s / 2f, u = s * 0.07f; // u: stroke width
+        glyph.setColor(ink);
+        glyph.setStyle(Paint.Style.STROKE);
+        glyph.setStrokeWidth(u);
+        glyph.setStrokeCap(Paint.Cap.ROUND);
+        glyph.setStrokeJoin(Paint.Join.ROUND);
+        Path p = new Path();
+        switch (id) {
+            case "dot":
+                glyph.setStyle(Paint.Style.FILL);
+                c.drawCircle(m, m, s * 0.12f, glyph);
+                break;
+            case "ring":
+                c.drawCircle(m, m, s * 0.2f, glyph);
+                break;
+            case "plus": {
+                float a = s * 0.2f;
+                c.drawLine(m - a, m, m + a, m, glyph);
+                c.drawLine(m, m - a, m, m + a, glyph);
+                break;
+            }
+            case "up": {
+                float a = s * 0.2f;
+                c.drawLine(m, m + a, m, m - a, glyph);
+                p.moveTo(m - a * 0.8f, m - a * 0.2f);
+                p.lineTo(m, m - a);
+                p.lineTo(m + a * 0.8f, m - a * 0.2f);
+                c.drawPath(p, glyph);
+                break;
+            }
+            case "search": {
+                float r = s * 0.13f, cx = m - s * 0.04f, cy = m - s * 0.04f;
+                c.drawCircle(cx, cy, r, glyph);
+                float d = r * 0.72f;
+                c.drawLine(cx + d, cy + d, cx + d + s * 0.12f, cy + d + s * 0.12f, glyph);
+                break;
+            }
+            case "grid": {
+                float g = s * 0.05f, side = s * 0.13f, r = side * 0.3f;
+                glyph.setStyle(Paint.Style.FILL);
+                for (int i = 0; i < 2; i++) {
+                    for (int j = 0; j < 2; j++) {
+                        float x = m + (i == 0 ? -g - side : g), y = m + (j == 0 ? -g - side : g);
+                        c.drawRoundRect(x, y, x + side, y + side, r, r, glyph);
+                    }
+                }
+                break;
+            }
+            case "lines": {
+                float a = s * 0.2f, gap = s * 0.11f;
+                c.drawLine(m - a, m - gap, m + a, m - gap, glyph);
+                c.drawLine(m - a, m, m + a * 0.4f, m, glyph);
+                c.drawLine(m - a, m + gap, m + a, m + gap, glyph);
+                break;
+            }
+            default: // target
+                c.drawCircle(m, m, s * 0.22f, glyph);
+                glyph.setStyle(Paint.Style.FILL);
+                c.drawCircle(m, m, s * 0.07f, glyph);
+        }
+        glyph.setStyle(Paint.Style.FILL);
     }
 
     private void drawText(Canvas c, float s, int ink, String text) {
