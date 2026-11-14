@@ -30,7 +30,7 @@ public final class Prefs {
             LEFT_HAND = "leftHand", HOME_ACTION = "homeAction", SEARCH_HIDDEN = "searchHidden",
             CLOCK_OFFSET = "clockOffset", BTN_ON = "buttonOn", MEDIA_ART = "mediaArt", MEDIA_ART_LOOK = "mediaArtLook", SETTINGS_ALL = "settingsAll", TYPE_SEARCH = "typeSearch", S_WEB = "srcWeb", S_CONTACTS = "srcContacts", S_EVENTS = "srcEvents",
             S_SETTINGS = "srcSettings", S_SHORTCUTS = "srcShortcuts", S_FILES = "srcFiles", WEB_ENGINE = "webEngine", WEB_URL = "webUrl", FLASH_STYLE = "flashStyle", FLASH_MS = "flashMs", FLASH_CYCLES = "flashCycles",
-            FLASH_PAGES = "flashPages", FLASH_MINUTES = "flashMinutes", FLASH_RETURN = "flashReturn", FLASH_SCREEN = "flashScreen", MEDIA_BAR_POS = "mediaBarPos", MEDIA_STYLE = "mediaStyle", MEDIA_ASKED = "mediaAsked", FIT_MEDIA = "fitMedia", BTN_GLYPH = "buttonGlyph", ICON_SHAPE = "iconShape", ICON_LOOK = "iconLook", ICON_RING = "iconRing",
+            FLASH_PAGES = "flashPages", FLASH_MINUTES = "flashMinutes", FLASH_RETURN = "flashReturn", FLASH_SCREEN = "flashScreen", MEDIA_BAR_POS = "mediaBarPos", MEDIA_STYLE = "mediaStyle", MEDIA_ASKED = "mediaAsked", MEDIA_W_SCALE = "mediaWScale", MEDIA_SHOW = "mediaShow", MEDIA_STALE = "mediaStale", MEDIA_OFF = "mediaOff", FIT_MEDIA = "fitMedia", BTN_GLYPH = "buttonGlyph", ICON_SHAPE = "iconShape", ICON_LOOK = "iconLook", ICON_RING = "iconRing",
             FOLDER_STYLE = "folderStyle", POP_BORDER = "popBorder", POP_CORNERS = "popCorners", BTN_SHAPE = "buttonShape",
             BTN_BORDER = "buttonBorder", BTN_FILL = "buttonFill", BTN_CONTENT = "buttonContent", BTN_WORD = "buttonWord", MEDIA_HOME_POS = "mediaHomePos", BTN_POS = "buttonPos", BTN_SIZE = "buttonSize", CLOCK_STYLE = "clockStyle", AGENDA = "agenda",
             BREAK_ON = "breakOn", BREAK_APPS = "breakApps", BREAK_MIN = "breakMin", CLOCK_APP = "clockApp", CAL_APP = "calApp", BTN = "buttonTap", BTN_UP = "buttonUp", ICON_PACK = "iconPack", CLOCK_WIDGET = "clockWidget", RENAMES = "renames", SETUP_DONE = "setupDone", THEME = "theme";
@@ -39,7 +39,7 @@ public final class Prefs {
             BG, FG, ACC, FONT, SCALE, BOLD, UPPER, DIVIDERS, ALIGN, GAP, ICONS, BADGES, CLOCK, CLOCK24,
             DATE, BATTERY, VALIGN, PAGED, VOLKEYS, FLASH_EVERY, HIDE_STATUS, G_UP, G_DOWN, G_LEFT,
             G_RIGHT, G_DOUBLE, FAVS, HIDDEN, MEDIA, FOLDERS, LIST_SCALE, CLOCK_SCALE, ICON_SCALE, MARGIN, W_MARGIN, W_GAP,
-            LEFT_HAND, HOME_ACTION, SEARCH_HIDDEN, CLOCK_OFFSET, BTN_ON, MEDIA_ART, MEDIA_ART_LOOK, TYPE_SEARCH, S_WEB, S_CONTACTS, S_EVENTS, S_SETTINGS, S_SHORTCUTS, S_FILES, WEB_ENGINE, WEB_URL, FLASH_STYLE, FLASH_MS, FLASH_CYCLES, FLASH_PAGES, FLASH_MINUTES, FLASH_RETURN, FLASH_SCREEN, MEDIA_BAR_POS, MEDIA_STYLE, FIT_MEDIA, BTN_GLYPH, ICON_SHAPE, ICON_LOOK, ICON_RING, FOLDER_STYLE, POP_BORDER, POP_CORNERS, BTN_SHAPE, BTN_BORDER,
+            LEFT_HAND, HOME_ACTION, SEARCH_HIDDEN, CLOCK_OFFSET, BTN_ON, MEDIA_ART, MEDIA_ART_LOOK, TYPE_SEARCH, S_WEB, S_CONTACTS, S_EVENTS, S_SETTINGS, S_SHORTCUTS, S_FILES, WEB_ENGINE, WEB_URL, FLASH_STYLE, FLASH_MS, FLASH_CYCLES, FLASH_PAGES, FLASH_MINUTES, FLASH_RETURN, FLASH_SCREEN, MEDIA_BAR_POS, MEDIA_STYLE, FIT_MEDIA, MEDIA_W_SCALE, MEDIA_SHOW, MEDIA_STALE, MEDIA_OFF, BTN_GLYPH, ICON_SHAPE, ICON_LOOK, ICON_RING, FOLDER_STYLE, POP_BORDER, POP_CORNERS, BTN_SHAPE, BTN_BORDER,
             BTN_FILL, BTN_CONTENT, BTN_WORD, MEDIA_HOME_POS, BTN_POS, BTN_SIZE, BTN, BTN_UP, ICON_PACK, CLOCK_STYLE, AGENDA, BREAK_ON, BREAK_APPS, BREAK_MIN,
             CLOCK_APP, CAL_APP, RENAMES, SETUP_DONE, THEME));
 

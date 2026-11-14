@@ -2,6 +2,7 @@ package app.inkwell.launcher;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +51,25 @@ final class WidgetMenu {
             final boolean isClock = Prefs.getInt(Prefs.CLOCK_WIDGET, -1) == id;
             names.add(isClock ? "Show the clock again" : "Use instead of the clock");
             acts.add(() -> { Prefs.put(Prefs.CLOCK_WIDGET, isClock ? -1 : id); changed.run(); });
+        }
+        final String owner = Widgets.packageOf(id);
+        if (owner != null && (slot.equals(Widgets.HOME) || slot.equals(Widgets.HOME_BELOW))) {
+            // from here its position, height and when it shows are the media widget settings
+            names.add("Show only while its app plays");
+            acts.add(() -> {
+                Widgets.moveToSlot(slot, "app:" + owner, id);
+                List<String> seen = Prefs.getList(Prefs.MEDIA_ASKED);
+                if (!seen.contains(owner)) {
+                    seen.add(owner);
+                    Prefs.putList(Prefs.MEDIA_ASKED, seen);
+                }
+                Toast.makeText(a, "Moved. Its position, height and when it shows are now under Media widgets in Settings.", Toast.LENGTH_LONG).show();
+                changed.run();
+            });
+        }
+        if (slot.startsWith("app:")) {
+            names.add("Always show on home (above the clock)");
+            acts.add(() -> { Widgets.moveToSlot(slot, Widgets.HOME, id); changed.run(); });
         }
         names.add("Remove");
         acts.add(() -> { Widgets.remove(slot, id); changed.run(); });

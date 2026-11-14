@@ -221,6 +221,13 @@ public final class Widgets {
     }
 
     /** Plain-language facts about a widget, for the "About this widget" screen. */
+    /** The app a widget belongs to, or null for the built-in ones and widgets Android no longer knows. */
+    public static String packageOf(int id) {
+        if (id < 0) return null;
+        AppWidgetProviderInfo info = mgr.getAppWidgetInfo(id);
+        return info == null ? null : info.provider.getPackageName();
+    }
+
     public static String describe(int id) {
         if (id < 0) return BuiltinWidgets.label(id) + "\nBuilt into Minimal Launcher Proper, so it always works offline.";
         AppWidgetProviderInfo info = mgr.getAppWidgetInfo(id);
@@ -259,6 +266,11 @@ public final class Widgets {
 
     /** Lays the slot's widgets into box: a swipeable stack when there are two or more, else one after another. */
     public static void fill(final Context c, LinearLayout box, final String slot, int availWidthPx, final Runnable changed) {
+        fill(c, box, slot, availWidthPx, changed, 100);
+    }
+
+    /** heightPct scales every widget's height (the media widgets on home have a size setting of their own). */
+    public static void fill(final Context c, LinearLayout box, final String slot, int availWidthPx, final Runnable changed, final int heightPct) {
         box.removeAllViews();
         List<Integer> all = ids(slot);
         if (stacked(slot) && all.size() >= 2) {
@@ -266,7 +278,7 @@ public final class Widgets {
             int id = all.get(cur);
             View v = view(c, id);
             StackView sv = new StackView(c);
-            if (v != null) sv.setContent(v, params(id, availWidthPx));
+            if (v != null) sv.setContent(v, params(id, availWidthPx, heightPct));
             sv.setPosition(cur, n);
             sv.setOnSwipe(dir -> {
                 int i = cur + dir;
@@ -277,7 +289,7 @@ public final class Widgets {
         } else {
             for (int id : all) {
                 View v = view(c, id);
-                if (v != null) box.addView(v, params(id, availWidthPx));
+                if (v != null) box.addView(v, params(id, availWidthPx, heightPct));
             }
         }
     }
@@ -325,10 +337,14 @@ public final class Widgets {
 
     /** Size, alignment and spacing for a widget laid out in a vertical column avail pixels wide. */
     public static LinearLayout.LayoutParams params(int id, int availWidthPx) {
+        return params(id, availWidthPx, 100);
+    }
+
+    public static LinearLayout.LayoutParams params(int id, int availWidthPx, int heightPct) {
         int margin = (int) Prefs.dp(ctx, Prefs.getInt(Prefs.W_MARGIN, 16));
         int gap = (int) Prefs.dp(ctx, Prefs.getInt(Prefs.W_GAP, 8));
         int inner = Math.max(1, availWidthPx - 2 * margin);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Math.max(1, inner * widthPct(id) / 100), heightPx(id));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Math.max(1, inner * widthPct(id) / 100), Math.max(1, heightPx(id) * heightPct / 100));
         int a = align(id);
         lp.gravity = a == 0 ? Gravity.START : a == 2 ? Gravity.END : Gravity.CENTER_HORIZONTAL;
         lp.setMargins(margin, gap / 2, margin, gap / 2);

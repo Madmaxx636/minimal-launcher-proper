@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2 (versionCode 21)
+
+- More control over the media widgets on home (Settings → Widgets):
+  - Height: 50–200% of each widget's own size.
+  - Position: new "Bottom of the screen" (above the music bar if both are down there).
+  - Show while playing or paused, or only while playing.
+  - Hide after being paused for 5 minutes, 15 minutes, 30 minutes, 1 hour, or never.
+  - Per app: turn an app's widget off so the launcher's controls are used for it.
+- A widget you added to the home screen (above or below the clock) can now be moved under these settings:
+  long-press it, Edit, then "Show only while its app plays". Moving it back is "Always show on home".
+- Music controls style gains "Both", which shows the widget and the launcher's bar together.
+
 ## 1.1 (versionCode 20)
 
 - Media apps' own widgets now show on home automatically while the app plays or is paused. The first time an

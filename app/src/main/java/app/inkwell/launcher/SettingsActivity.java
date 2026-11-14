@@ -350,8 +350,8 @@ public class SettingsActivity extends Activity {
         });
         appRow("App the clock opens", Prefs.CLOCK_APP, "Android's default");
         appRow("App the date opens", Prefs.CAL_APP, "Android's default");
-        choice("Music controls style", Prefs.MEDIA_STYLE, new String[]{"The launcher's controls", "The app's own widget (launcher controls until one is set up)"},
-                new String[]{"bar", "widget"}, "widget");
+        choice("Music controls style", Prefs.MEDIA_STYLE, new String[]{"The launcher's controls", "The app's own widget (launcher controls until one is set up)", "Both: the widget and the launcher's controls"},
+                new String[]{"bar", "widget", "both"}, "widget");
         toggle("Shrink the app list to fit when music shows", Prefs.FIT_MEDIA, true);
         Ui.row(list, "Media app widgets", mediaWidgetSummary(), v -> pickMediaApp());
         choice("Music controls position", Prefs.MEDIA_BAR_POS, new String[]{"Bottom of the screen", "Above the clock", "Below the clock", "Above the app list"},
@@ -385,8 +385,12 @@ public class SettingsActivity extends Activity {
         more();
         sliderRow("Space between widgets", "Vertical gap", Prefs.W_GAP, 0, 60, 2, " dp", 8);
         sliderRow("Widget side margin", "Space at the left and right of widgets", Prefs.W_MARGIN, 0, 96, 4, " dp", 16);
-        choice("App widgets appear (while their app plays)", Prefs.MEDIA_HOME_POS, new String[]{"Above the clock", "Below the clock", "Above the app list"},
-                new String[]{"clock", "below", "list"}, "list");
+        choice("App widgets appear (while their app plays)", Prefs.MEDIA_HOME_POS, new String[]{"Above the clock", "Below the clock", "Above the app list", "Bottom of the screen"},
+                new String[]{"clock", "below", "list", "bottom"}, "list");
+        sliderRow("Media widget height", "Makes the widgets shown on home taller or shorter. 100% is the size you set for each widget.", Prefs.MEDIA_W_SCALE, 50, 200, 10, "%", 100);
+        choice("Show media widgets while", Prefs.MEDIA_SHOW, new String[]{"Playing or paused", "Only while playing"}, new String[]{"any", "playing"}, "any");
+        choice("Hide after being paused for", Prefs.MEDIA_STALE, new String[]{"Never", "5 minutes", "15 minutes", "30 minutes", "1 hour"},
+                new String[]{"0", "5", "15", "30", "60"}, "0");
 
         // ---- Search & keyboard ----
         begin("search");
@@ -589,13 +593,29 @@ public class SettingsActivity extends Activity {
             Toast.makeText(this, "Nothing found yet. Play something, or put music apps in a folder named Media or Music.", Toast.LENGTH_LONG).show();
             return;
         }
+        final List<String> off = Prefs.getList(Prefs.MEDIA_OFF);
         final String[] names = new String[apps.size()];
         for (int i = 0; i < names.length; i++) {
             String p = apps.get(i);
-            names[i] = AppRepo.displayLabel(AppRepo.find(p)) + (Widgets.ids("app:" + p).isEmpty() ? "" : "   ✓ widget set");
+            names[i] = AppRepo.displayLabel(AppRepo.find(p))
+                    + (off.contains(p) ? "   · off, uses launcher controls" : Widgets.ids("app:" + p).isEmpty() ? "" : "   ✓ widget set");
         }
         new AlertDialog.Builder(this).setTitle("Media app widgets")
-                .setItems(names, (d, w) -> WidgetPicker.showFor(this, "app:" + apps.get(w), apps.get(w), this::build))
+                .setItems(names, (d, w) -> {
+                    final String pkg = apps.get(w);
+                    final boolean isOff = off.contains(pkg);
+                    String[] actions = {"Choose its widget…", isOff ? "Use its widget again" : "Don't use its widget (launcher controls instead)"};
+                    new AlertDialog.Builder(this).setTitle(AppRepo.displayLabel(AppRepo.find(pkg)))
+                            .setItems(actions, (d2, a) -> {
+                                if (a == 0) {
+                                    WidgetPicker.showFor(this, "app:" + pkg, pkg, this::build);
+                                } else {
+                                    if (isOff) off.remove(pkg); else off.add(pkg);
+                                    Prefs.putList(Prefs.MEDIA_OFF, off);
+                                    build();
+                                }
+                            }).show();
+                })
                 .setNegativeButton("Close", null).show();
     }
 

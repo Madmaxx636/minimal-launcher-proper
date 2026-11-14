@@ -50,6 +50,8 @@ public class HomeActivity extends Activity {
     private MediaBar shownBar;
     private String barsKey = "";
     private boolean offering;
+    /** When each app's music was last seen paused, so "hide after being paused" can count from then. */
+    private final java.util.Map<String, Long> pausedAt = new java.util.HashMap<>();
     private int barIndex;
     /** Apps whose music bar was closed with the X, and whether they were playing when it was closed. */
     private final java.util.Map<String, Boolean> closedBars = new java.util.HashMap<>();
@@ -77,6 +79,10 @@ public class HomeActivity extends Activity {
     private final BroadcastReceiver tick = new BroadcastReceiver() {
         @Override public void onReceive(Context c, Intent i) {
             updateHeader();
+            if (resumedNow && !Prefs.getStr(Prefs.MEDIA_STALE, "0").equals("0")) {
+                refreshMediaBars();
+                refreshMediaWidgets(false);
+            }
             int every = Prefs.getInt(Prefs.FLASH_MINUTES, 0);
             if (every > 0 && resumedNow && drawer.getVisibility() != View.VISIBLE && ++minutesOnHome % every == 0) Eink.flash(HomeActivity.this);
         }
@@ -137,6 +143,9 @@ public class HomeActivity extends Activity {
         });
         homeLayer.addView(mediaBars, new LinearLayout.LayoutParams(-1, -2));
         mediaBox = new LinearLayout(this);
+        mediaBox.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (bottom - top != oldBottom - oldTop && quickButton != null) quickButton.post(this::placeButton);
+        });
         mediaBox.setOrientation(LinearLayout.VERTICAL);
         root.addView(homeLayer, new FrameLayout.LayoutParams(-1, -1));
         placeMediaBar();
@@ -443,7 +452,9 @@ public class HomeActivity extends Activity {
         lp.leftMargin = m;
         lp.rightMargin = m;
         boolean barAtBottom = Prefs.getStr(Prefs.MEDIA_BAR_POS, "bottom").equals("bottom");
-        lp.bottomMargin = m + (barAtBottom && mediaBars.getVisibility() == View.VISIBLE ? mediaBars.getHeight() : 0);
+        boolean boxAtBottom = Prefs.getStr(Prefs.MEDIA_HOME_POS, "list").equals("bottom");
+        lp.bottomMargin = m + (barAtBottom && mediaBars.getVisibility() == View.VISIBLE ? mediaBars.getHeight() : 0)
+                + (boxAtBottom && mediaBox.getChildCount() > 0 ? mediaBox.getHeight() : 0);
         quickButton.setLayoutParams(lp);
     }
 
@@ -754,19 +765,10 @@ public class HomeActivity extends Activity {
     private void refreshMediaBars() {
         List<MediaController> all = NotifService.activeSessions(8);
         if (Prefs.getBool(Prefs.MEDIA, true)) for (MediaController mc : all) noteMediaApp(mc.getPackageName());
-        for (java.util.Iterator<java.util.Map.Entry<String, Boolean>> it = closedBars.entrySet().iterator(); it.hasNext(); ) {
-            java.util.Map.Entry<String, Boolean> closed = it.next();
-            MediaController still = null;
-            for (MediaController mc : all) if (mc.getPackageName().equals(closed.getKey())) still = mc;
-            if (still == null || (!closed.getValue() && barPlaying(still))) it.remove();
-        }
         List<MediaController> active = new ArrayList<>();
         if (Prefs.getBool(Prefs.MEDIA, true)) {
-            List<String> asWidget = widgetApps();
-            for (MediaController mc : all) {
-                String pkg = mc.getPackageName();
-                if (!closedBars.containsKey(pkg) && !asWidget.contains(pkg)) active.add(mc);
-            }
+            List<String> asWidget = Prefs.getStr(Prefs.MEDIA_STYLE, "widget").equals("widget") ? widgetApps() : new ArrayList<String>();
+            for (MediaController mc : shownSessions()) if (!asWidget.contains(mc.getPackageName())) active.add(mc);
         }
         if (barIndex >= active.size()) barIndex = 0;
         StringBuilder key = new StringBuilder().append(barIndex).append(':');
@@ -845,13 +847,56 @@ public class HomeActivity extends Activity {
                 || s.getState() == android.media.session.PlaybackState.STATE_BUFFERING);
     }
 
-    /** Apps whose own widget stands in for the launcher's music bar while they play (if that style is chosen). */
+    /**
+     * The players that should show something on home right now: music that is playing or paused (or only
+     * playing, as chosen), not paused for longer than the limit, and not swiped away.
+     */
+    private List<MediaController> shownSessions() {
+        List<MediaController> all = NotifService.activeSessions(8);
+        long now = SystemClock.elapsedRealtime();
+        Set<String> present = new HashSet<>();
+        for (MediaController mc : all) {
+            String pkg = mc.getPackageName();
+            present.add(pkg);
+            if (barPlaying(mc)) pausedAt.remove(pkg);
+            else if (!pausedAt.containsKey(pkg)) pausedAt.put(pkg, now);
+        }
+        pausedAt.keySet().retainAll(present);
+        for (java.util.Iterator<java.util.Map.Entry<String, Boolean>> it = closedBars.entrySet().iterator(); it.hasNext(); ) {
+            java.util.Map.Entry<String, Boolean> closed = it.next();
+            MediaController still = null;
+            for (MediaController mc : all) if (mc.getPackageName().equals(closed.getKey())) still = mc;
+            if (still == null || (!closed.getValue() && barPlaying(still))) it.remove();
+        }
+        boolean onlyPlaying = Prefs.getStr(Prefs.MEDIA_SHOW, "any").equals("playing");
+        long staleMs = 60000L * parseMinutes(Prefs.getStr(Prefs.MEDIA_STALE, "0"));
+        List<MediaController> out = new ArrayList<>();
+        for (MediaController mc : all) {
+            String pkg = mc.getPackageName();
+            if (closedBars.containsKey(pkg)) continue;
+            if (!barPlaying(mc)) {
+                if (onlyPlaying) continue;
+                Long since = pausedAt.get(pkg);
+                if (staleMs > 0 && since != null && now - since > staleMs) continue;
+            }
+            out.add(mc);
+        }
+        return out;
+    }
+
+    private static int parseMinutes(String s) {
+        try { return Integer.parseInt(s); } catch (NumberFormatException e) { return 0; }
+    }
+
+    /** Apps whose own widget is shown on home while they play (when that style is chosen). */
     private List<String> widgetApps() {
         List<String> out = new ArrayList<>();
-        if (!Prefs.getStr(Prefs.MEDIA_STYLE, "widget").equals("widget")) return out;
-        for (MediaController mc : NotifService.activeSessions(8)) {
+        String style = Prefs.getStr(Prefs.MEDIA_STYLE, "widget");
+        if (!style.equals("widget") && !style.equals("both")) return out;
+        List<String> off = Prefs.getList(Prefs.MEDIA_OFF);
+        for (MediaController mc : shownSessions()) {
             String pkg = mc.getPackageName();
-            if (!closedBars.containsKey(pkg) && !Widgets.ids("app:" + pkg).isEmpty()) out.add(pkg);
+            if (!off.contains(pkg) && !Widgets.ids("app:" + pkg).isEmpty()) out.add(pkg);
         }
         return out;
     }
@@ -865,6 +910,8 @@ public class HomeActivity extends Activity {
         int at;
         if (pos.equals("clock")) at = homeLayer.indexOfChild(clockView);
         else if (pos.equals("below")) at = homeLayer.indexOfChild(agendaView) + 1;
+        else if (pos.equals("bottom")) at = mediaBars.getParent() == homeLayer && Prefs.getStr(Prefs.MEDIA_BAR_POS, "bottom").equals("bottom")
+                ? homeLayer.indexOfChild(mediaBars) : homeLayer.getChildCount(); // above the music bar if both are down there
         else at = homeLayer.indexOfChild(home);
         homeLayer.addView(mediaBox, at, new LinearLayout.LayoutParams(-1, -2));
     }
@@ -884,7 +931,7 @@ public class HomeActivity extends Activity {
         for (final String pkg : active) {
             LinearLayout col = new LinearLayout(this);
             col.setOrientation(LinearLayout.VERTICAL);
-            Widgets.fill(this, col, "app:" + pkg, w, () -> refreshMediaWidgets(true));
+            Widgets.fill(this, col, "app:" + pkg, w, () -> refreshMediaWidgets(true), Prefs.getInt(Prefs.MEDIA_W_SCALE, 100));
             // swipe up or down to send it away until that app plays again
             StackView away = new StackView(this);
             away.setContent(col, new LinearLayout.LayoutParams(-1, -2));
