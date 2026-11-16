@@ -6,6 +6,9 @@ An Android home screen built for e-ink screens, in the spirit of Niagara Launche
 favorite apps, an alphabet strip, and very little else. No ads, no accounts, and no internet permission.
 Nothing the app reads ever leaves the phone.
 
+Looking for apps to go with it? See [E-ink Apps](https://github.com/Madmaxx636/eink-apps): Ink Pad (notes), Weather, Clock,
+Calculator, Calendar and Files, made for the same screens.
+
 ## What it does
 
 - Favorites list with paging, an A–Z scrubber, and a drawer with search
