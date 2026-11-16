@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3 (versionCode 22)
+
+- With several media apps playing, their widgets show one at a time: swipe sideways to flip between them (dots show
+  where you are) instead of all taking up the screen.
+- Folder editor: a pencil button next to each app renames it. The new name is used everywhere, as if renamed from the app list.
+
 ## 1.2 (versionCode 21)
 
 - More control over the media widgets on home (Settings → Widgets):

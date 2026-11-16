@@ -20,8 +20,8 @@ android {
         applicationId = "app.inkwell.launcher"
         minSdk = 26
         targetSdk = 34
-        versionCode = 21
-        versionName = "1.2"
+        versionCode = 22
+        versionName = "1.3"
     }
 
     lint {

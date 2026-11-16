@@ -49,6 +49,7 @@ public class HomeActivity extends Activity {
     private FrameLayout mediaBars;
     private MediaBar shownBar;
     private String barsKey = "";
+    private int mediaIndex;
     private boolean offering;
     /** When each app's music was last seen paused, so "hide after being paused" can count from then. */
     private final java.util.Map<String, Long> pausedAt = new java.util.HashMap<>();
@@ -924,27 +925,42 @@ public class HomeActivity extends Activity {
         List<String> active = widgetApps();
         StringBuilder key = new StringBuilder();
         for (String pkg : active) key.append(pkg).append(',');
+        key.append(mediaIndex);
         if (!force && key.toString().equals(mediaKey)) return;
         mediaKey = key.toString();
         mediaBox.removeAllViews();
         int w = getResources().getDisplayMetrics().widthPixels;
-        for (final String pkg : active) {
-            LinearLayout col = new LinearLayout(this);
-            col.setOrientation(LinearLayout.VERTICAL);
-            Widgets.fill(this, col, "app:" + pkg, w, () -> refreshMediaWidgets(true), Prefs.getInt(Prefs.MEDIA_W_SCALE, 100));
-            // swipe up or down to send it away until that app plays again
-            StackView away = new StackView(this);
-            away.setContent(col, new LinearLayout.LayoutParams(-1, -2));
-            away.setOnDismiss(() -> {
-                for (MediaController mc : NotifService.activeSessions(8)) {
-                    if (mc.getPackageName().equals(pkg)) closedBars.put(pkg, barPlaying(mc));
-                }
-                refreshMediaBars();
+        if (active.isEmpty()) {
+            updateFit();
+            return;
+        }
+        // One app's widget at a time. With several playing, swipe sideways to flip between them.
+        if (mediaIndex >= active.size()) mediaIndex = 0;
+        final int count = active.size(), at = mediaIndex;
+        final String pkg = active.get(at);
+        LinearLayout col = new LinearLayout(this);
+        col.setOrientation(LinearLayout.VERTICAL);
+        Widgets.fill(this, col, "app:" + pkg, w, () -> refreshMediaWidgets(true), Prefs.getInt(Prefs.MEDIA_W_SCALE, 100));
+        StackView away = new StackView(this);
+        away.setContent(col, new LinearLayout.LayoutParams(-1, -2));
+        if (count > 1) {
+            away.setPosition(at, count);
+            away.setOnSwipe(dir -> {
+                mediaIndex = (at + dir + count) % count;
                 refreshMediaWidgets(true);
                 quickButton.post(this::placeButton);
             });
-            mediaBox.addView(away, new LinearLayout.LayoutParams(-1, -2));
         }
+        // swipe up or down to send it away until that app plays again
+        away.setOnDismiss(() -> {
+            for (MediaController mc : NotifService.activeSessions(8)) {
+                if (mc.getPackageName().equals(pkg)) closedBars.put(pkg, barPlaying(mc));
+            }
+            refreshMediaBars();
+            refreshMediaWidgets(true);
+            quickButton.post(this::placeButton);
+        });
+        mediaBox.addView(away, new LinearLayout.LayoutParams(-1, -2));
         updateFit();
     }
 

@@ -75,6 +75,7 @@ public class FolderActivity extends Activity {
                 save(apps);
             }));
             r.addView(Ui.text(c, AppRepo.displayLabel(AppRepo.find(pkg)), 18, Prefs.fg(), false), new LinearLayout.LayoutParams(0, -2, 1f));
+            r.addView(button("✎", () -> renameApp(pkg)));
             r.addView(button("▲", () -> { if (pos > 0) { Ui.reorder(apps, shown, pos, pos - 1); save(apps); } }));
             r.addView(button("▼", () -> { if (pos < shown.size() - 1) { Ui.reorder(apps, shown, pos, pos + 1); save(apps); } }));
             r.addView(button("✕", () -> { apps.remove(pkg); save(apps); }));
@@ -99,6 +100,25 @@ public class FolderActivity extends Activity {
         t.setPadding(pad, pad, pad, pad);
         t.setOnClickListener(v -> r.run());
         return t;
+    }
+
+    /** Renames the app everywhere it shows, the same as renaming it from the app list. */
+    private void renameApp(String pkg) {
+        final AppRepo.AppEntry a = AppRepo.find(pkg);
+        if (a == null) return;
+        final EditText et = new EditText(this);
+        et.setSingleLine(true);
+        et.setText(AppRepo.displayLabel(a));
+        et.setSelectAllOnFocus(true);
+        new AlertDialog.Builder(this).setTitle("Rename " + a.label)
+                .setMessage("Leave empty to restore the original name.")
+                .setView(et)
+                .setPositiveButton("Save", (d, w) -> {
+                    String s = et.getText().toString().trim();
+                    Prefs.setRename(a.pkg, s.equals(a.label) ? "" : s);
+                    build();
+                })
+                .setNegativeButton("Cancel", null).show();
     }
 
     private void save(List<String> apps) {
